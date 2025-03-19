@@ -1,0 +1,62 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id         String   @id
+  publicKey  String   @unique
+  groups     Group[]  @relation("GroupMembers")
+  adminOf    Group[]  @relation("GroupAdmin")
+  expenses   Expense[] @relation("ExpensePayer")
+  involved   Expense[] @relation("ExpenseParticipants")
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+}
+
+model Group {
+  id          String   @id @default(uuid())
+  name        String
+  description String?
+  admin       User     @relation("GroupAdmin", fields: [adminId], references: [id])
+  adminId     String
+  members     User[]   @relation("GroupMembers")
+  expenses    Expense[]
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  onChainId   String?  @unique
+}
+
+model Expense {
+  id            String   @id @default(uuid())
+  description   String
+  amount        Float
+  group         Group    @relation(fields: [groupId], references: [id])
+  groupId       String
+  payer         User     @relation("ExpensePayer", fields: [payerId], references: [id])
+  payerId       String
+  participants  User[]   @relation("ExpenseParticipants")
+  timestamp     DateTime @default(now())
+  onChainId     String?  @unique
+}
+
+model Settlement {
+  id            String   @id @default(uuid())
+  fromUserId    String
+  toUserId      String
+  amount        Float
+  groupId       String
+  timestamp     DateTime @default(now())
+  status        String   @default("pending") // pending, completed, failed
+  transactionId String?
+}
